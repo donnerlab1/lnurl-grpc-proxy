@@ -29,7 +29,7 @@ func init() {
 	viper.AutomaticEnv()
 
 	if ok := viper.IsSet("base_url"); !ok {
-		log.Panicf("--grpc_port is not set, must be provided to start listening for incomming connections")
+		log.Panicf("--base_url is not set, must be provided")
 	}
 }
 
