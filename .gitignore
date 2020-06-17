@@ -1,0 +1,31 @@
+# ---> Go
+# Compiled Object files, Static and Dynamic libs (Shared Objects)
+*.o
+*.a
+*.so
+
+*.exe
+*.test
+*.prof
+
+/testdata
+/data
+/.idea
+/.idea/**
+
+vendor
+*.idea
+*.iml
+profile.cov
+profile.tmp
+
+.DS_Store
+
+.vscode
+
+# vim
+*.swp
+
+*.hex
+*.db
+*.bin
