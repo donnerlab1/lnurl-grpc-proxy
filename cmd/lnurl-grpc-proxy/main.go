@@ -76,7 +76,14 @@ func main() {
 	sigs := make(chan os.Signal, 1)
 	signal.Notify(sigs, syscall.SIGINT, syscall.SIGTERM)
 	log.Println("\t [MAIN] > await signal")
-	<-sigs
-	log.Println("\t [MAIN] > exiting")
+	for {
+		select{
+			case <-sigs:
+				log.Println("\t [MAIN] > exit")
+				return
+			case err := <-fatalChan:
+				panic(err)
+		}
+	}
 
 }
