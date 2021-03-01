@@ -44,7 +44,7 @@ func Test_Service(t *testing.T) {
 	}
 	assert.Equal(t, res.K1, withdrawId)
 
-	errRes = lnurlService.SendInvoice(withdrawId, "invoice")
+	errRes = lnurlService.ForwardInvoice(withdrawId, "invoice")
 	assert.Equal(t, errRes.Status, "OK")
 }
 

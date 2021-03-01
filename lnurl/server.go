@@ -13,7 +13,7 @@ var (
 )
 
 type GrpcServer struct {
-	withdrawer LnurlWithdrawer
+	withdrawer Withdrawer
 }
 
 func (g *GrpcServer) LnurlWithdraw(server api.WithdrawProxy_LnurlWithdrawServer) error {
@@ -86,7 +86,7 @@ Loop:
 
 }
 
-func NewGrpcServer(withdrawer LnurlWithdrawer) *GrpcServer {
+func NewGrpcServer(withdrawer Withdrawer) *GrpcServer {
 	return &GrpcServer{withdrawer: withdrawer}
 }
 

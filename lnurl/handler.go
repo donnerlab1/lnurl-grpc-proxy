@@ -7,10 +7,10 @@ import (
 )
 
 type RestHandler struct {
-	LnurlWithdrawer LnurlWithdrawer
+	LnurlWithdrawer Withdrawer
 }
 
-func NewRestHandler(lnurlWithdrawer LnurlWithdrawer) *RestHandler {
+func NewRestHandler(lnurlWithdrawer Withdrawer) *RestHandler {
 	return &RestHandler{LnurlWithdrawer: lnurlWithdrawer}
 }
 
@@ -39,7 +39,7 @@ func (rh *RestHandler) SendInvoice(w http.ResponseWriter, r *http.Request) {
 	query := r.URL.Query()
 	withdrawId := query.Get("k1")
 	invoice := query.Get("pr")
-	res := rh.LnurlWithdrawer.SendInvoice(withdrawId, invoice)
+	res := rh.LnurlWithdrawer.ForwardInvoice(withdrawId, invoice)
 	err := json.NewEncoder(w).Encode(res)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)

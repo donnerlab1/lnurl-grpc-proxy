@@ -14,24 +14,18 @@ var (
 	WithdrawNotExistError = fmt.Errorf("withdraw id does not exist")
 )
 
-type LnurlWithdrawer interface {
-	AddWithdrawRequest(withdrawId string, receiver LnUrlWithdrawReceiver, params *WithdrawParams) (bechstring string, err error)
+type Withdrawer interface {
+	AddWithdrawRequest(withdrawId string, receiver InvoicePayer, params *WithdrawParams) (bechstring string, err error)
 	WithdrawRequest(withdrawId string) (*lnurl.LNURLWithdrawResponse, *lnurl.LNURLErrorResponse)
-	SendInvoice(withdrawId string, invoice string) *lnurl.LNURLErrorResponse
+	ForwardInvoice(withdrawId string, invoice string) *lnurl.LNURLErrorResponse
 }
 
-type LnUrlWithdrawReceiver interface {
+type InvoicePayer interface {
 	PayInvoice(invoice string) error
 }
 
-type Service struct {
-	sync.RWMutex
-	baseUrl string
-
-	withdrawMap map[string]*WithdrawProcess
-}
 type WithdrawProcess struct {
-	Receiver       LnUrlWithdrawReceiver
+	Receiver       InvoicePayer
 	WithdrawParams *WithdrawParams
 }
 
@@ -41,15 +35,24 @@ type WithdrawParams struct {
 	Description string
 }
 
+type Service struct {
+	sync.RWMutex
+	baseUrl string
+
+	withdrawProcesses map[string]*WithdrawProcess
+}
+
 func NewService(baseUrl string) *Service {
-	srv := &Service{baseUrl: baseUrl}
-	srv.withdrawMap = make(map[string]*WithdrawProcess)
+	srv := &Service{
+		baseUrl:           baseUrl,
+		withdrawProcesses: make(map[string]*WithdrawProcess),
+	}
 	return srv
 }
 
-func (s *Service) AddWithdrawRequest(withdrawId string, receiver LnUrlWithdrawReceiver, params *WithdrawParams) (bechstring string, err error) {
+func (s *Service) AddWithdrawRequest(id string, receiver InvoicePayer, params *WithdrawParams) (bechstring string, err error) {
 
-	url := fmt.Sprintf("%s/withdraw/%s", s.baseUrl, withdrawId)
+	url := fmt.Sprintf("%s/withdraw/%s", s.baseUrl, id)
 	bechstring, err = lnurl.LNURLEncode(url)
 	if err != nil {
 		return "", err
@@ -60,28 +63,28 @@ func (s *Service) AddWithdrawRequest(withdrawId string, receiver LnUrlWithdrawRe
 	}
 
 	s.Lock()
-	s.withdrawMap[withdrawId] = process
+	s.withdrawProcesses[id] = process
 	s.Unlock()
 
-	log.Printf("\t [LNURL] > New WithdrawProcess %s %v", withdrawId, params)
+	log.Printf("\t [LNURL] > New WithdrawProcess %s %v", id, params)
 	return bechstring, err
 }
 
-func (s *Service) WithdrawRequest(withdrawId string) (*lnurl.LNURLWithdrawResponse, *lnurl.LNURLErrorResponse) {
+func (s *Service) WithdrawRequest(id string) (*lnurl.LNURLWithdrawResponse, *lnurl.LNURLErrorResponse) {
 	s.RLock()
 
-	if withdrawProcess, ok := s.withdrawMap[withdrawId]; ok {
+	if withdrawProcess, ok := s.withdrawProcesses[id]; ok {
 		s.RUnlock()
 		res := &lnurl.LNURLWithdrawResponse{
 			Tag:                LNURL_WITHDRAWTAG,
-			K1:                 withdrawId,
+			K1:                 id,
 			Callback:           fmt.Sprintf("%s/invoice", s.baseUrl),
 			CallbackURL:        nil,
 			MaxWithdrawable:    withdrawProcess.WithdrawParams.MaxAmt,
 			MinWithdrawable:    withdrawProcess.WithdrawParams.MinAmt,
 			DefaultDescription: withdrawProcess.WithdrawParams.Description,
 		}
-		log.Printf("\t [LNURL] > New WithdrawRequest %s %v", withdrawId, res)
+		log.Printf("\t [LNURL] > New WithdrawRequest %s %v", id, res)
 		return res, nil
 	}
 	s.RUnlock()
@@ -92,23 +95,23 @@ func (s *Service) WithdrawRequest(withdrawId string) (*lnurl.LNURLWithdrawRespon
 	}
 }
 
-func (s *Service) SendInvoice(withdrawId string, invoice string) *lnurl.LNURLErrorResponse {
+func (s *Service) ForwardInvoice(id string, invoice string) *lnurl.LNURLErrorResponse {
 	s.Lock()
-	if process, ok := s.withdrawMap[withdrawId]; ok {
-		delete(s.withdrawMap, withdrawId)
+	if process, ok := s.withdrawProcesses[id]; ok {
+		delete(s.withdrawProcesses, id)
 		s.Unlock()
 
-		log.Printf("\t [LNURL] > New SendInvoice %s %s", withdrawId, invoice)
+		log.Printf("\t [LNURL] > New ForwardInvoice %s %s", id, invoice)
 		err := process.Receiver.PayInvoice(invoice)
 		if err != nil {
-			log.Printf("\t [LNURL-ERROR] > Payinvoice %s", withdrawId)
+			log.Printf("\t [LNURL-ERROR] > Payinvoice %s", id)
 			return &lnurl.LNURLErrorResponse{
 				Status: "ERROR",
 				Reason: err.Error(),
 			}
 		}
 
-		log.Printf("\t [LNURL] > SUCCESS Payinvoice %s ", withdrawId)
+		log.Printf("\t [LNURL] > SUCCESS Payinvoice %s ", id)
 		return &lnurl.LNURLErrorResponse{
 			Status: "OK",
 		}
@@ -120,6 +123,6 @@ func (s *Service) SendInvoice(withdrawId string, invoice string) *lnurl.LNURLErr
 	}
 }
 
-func splitUrl(url string) (withdrawId string) {
+func splitUrl(url string) (id string) {
 	return strings.Split(url, "/")[4]
 }
