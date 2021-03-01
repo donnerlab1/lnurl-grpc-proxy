@@ -8,7 +8,11 @@ import (
 	"sync"
 )
 
-const LNURL_WITHDRAWTAG = "withdrawRequest"
+const (
+	LNURL_WITHDRAWTAG       = "withdrawRequest"
+	DEFAULT_CALLBACK_SUBDIR = "invoice"
+	DEFAULT_WITHDRAW_SUBDIR = "withdraw"
+)
 
 var (
 	WithdrawNotExistError = fmt.Errorf("withdraw id does not exist")
@@ -56,8 +60,7 @@ func NewService(baseUrl string) *Service {
 // bechstring that is presented to the LN WALLET as a QR
 // code.
 func (s *Service) AddWithdrawRequest(id string, receiver InvoicePayer, params *WithdrawParams) (bechstring string, err error) {
-
-	url := fmt.Sprintf("%s/withdraw/%s", s.baseUrl, id)
+	url := fmt.Sprintf("%s/%s/%s", s.baseUrl, DEFAULT_WITHDRAW_SUBDIR, id)
 	bechstring, err = lnurl.LNURLEncode(url)
 	if err != nil {
 		return "", err
@@ -87,7 +90,7 @@ func (s *Service) WithdrawRequest(id string) (*lnurl.LNURLWithdrawResponse, *lnu
 		res := &lnurl.LNURLWithdrawResponse{
 			Tag:                LNURL_WITHDRAWTAG,
 			K1:                 id,
-			Callback:           fmt.Sprintf("%s/invoice", s.baseUrl),
+			Callback:           fmt.Sprintf("%s/%s", s.baseUrl, DEFAULT_CALLBACK_SUBDIR),
 			CallbackURL:        nil,
 			MaxWithdrawable:    withdrawProcess.WithdrawParams.MaxAmt,
 			MinWithdrawable:    withdrawProcess.WithdrawParams.MinAmt,
