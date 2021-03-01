@@ -16,10 +16,9 @@ var (
 type GrpcServer struct {
 	withdrawer Withdrawer
 
-	ctx context.Context
+	ctx    context.Context
 	cancel context.CancelFunc
 }
-
 
 func NewGrpcServer(withdrawer Withdrawer) *GrpcServer {
 	ctx, cancel := context.WithCancel(context.Background())
@@ -60,7 +59,7 @@ func (g *GrpcServer) LnurlWithdraw(server api.WithdrawProxy_LnurlWithdrawServer)
 
 	// Wait for payinvoice request
 	var invoice string
-Loop:
+
 	for {
 		select {
 		case <-g.ctx.Done():
@@ -69,32 +68,30 @@ Loop:
 			log.Printf("\t [GRPC] > context canceled: %s", openReq.WithdrawId)
 			return nil
 		case invoice = <-lnurlClient.invoiceChan:
-			break Loop
+			// send invoice request
+			err = server.Send(&api.LnurlWithdrawResponse{Event: &api.LnurlWithdrawResponse_Invoice{Invoice: &api.Invoice{Invoice: invoice}}})
+			if err != nil {
+				return status.Errorf(codes.Unknown, err.Error())
+			}
+			// wait for okay
+			msg, err = server.Recv()
+			if err != nil {
+				return status.Errorf(codes.Unknown, err.Error())
+			}
+			ok := msg.GetPay()
+			if ok == nil {
+				lnurlClient.errChan <- unkownError
+				return unkownError
+			}
+			if ok.Status == "OK" {
+				lnurlClient.errChan <- nil
+			} else {
+				lnurlClient.errChan <- fmt.Errorf("%s", ok.Reason)
+				return fmt.Errorf("%s", ok.Reason)
+			}
+			return nil
 		}
 	}
-
-	// send invoice request
-	err = server.Send(&api.LnurlWithdrawResponse{Event: &api.LnurlWithdrawResponse_Invoice{Invoice: &api.Invoice{Invoice: invoice}}})
-	if err != nil {
-		return status.Errorf(codes.Unknown, err.Error())
-	}
-	// wait for okay
-	msg, err = server.Recv()
-	if err != nil {
-		return status.Errorf(codes.Unknown, err.Error())
-	}
-	ok := msg.GetPay()
-	if ok == nil {
-		lnurlClient.errChan <- unkownError
-		return unkownError
-	}
-	if ok.Status == "OK" {
-		lnurlClient.errChan <- nil
-	} else {
-		lnurlClient.errChan <- fmt.Errorf("%s", ok.Reason)
-		return fmt.Errorf("%s", ok.Reason)
-	}
-	return nil
 }
 
 func (g *GrpcServer) Stop() {
