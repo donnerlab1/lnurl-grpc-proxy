@@ -26,20 +26,30 @@ func (rh *RestHandler) GetWithdrawParams(w http.ResponseWriter, r *http.Request)
 		http.Error(w, "empty id", http.StatusBadRequest)
 	}
 
-	res, errRes := rh.LnurlWithdrawer.WithdrawRequest(id)
-	if errRes != nil {
-		err := json.NewEncoder(w).Encode(errRes)
+	res, lnurlErr := rh.LnurlWithdrawer.WithdrawRequest(id)
+
+	// return lnurlErr
+	if lnurlErr != nil {
+		jsErrRes, err := json.Marshal(lnurlErr)
 		if err != nil {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
 		}
+
+		w.Header().Set("Content-Type", "application/json")
+		_, _ = w.Write(jsErrRes)
 		return
 	}
-	err := json.NewEncoder(w).Encode(res)
+
+	// return lnurlRes
+	jsRes, err := json.Marshal(res)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
+
+	w.Header().Set("Content-Type", "application/json")
+	_, _ = w.Write(jsRes)
 }
 
 func (rh *RestHandler) SendInvoice(w http.ResponseWriter, r *http.Request) {
@@ -52,11 +62,14 @@ func (rh *RestHandler) SendInvoice(w http.ResponseWriter, r *http.Request) {
 	withdrawId := query.Get("k1")
 	invoice := query.Get("pr")
 	res := rh.LnurlWithdrawer.ForwardInvoice(withdrawId, invoice)
-	err := json.NewEncoder(w).Encode(res)
+	jsRes, err := json.Marshal(res)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
+
+	w.Header().Set("Content-Type", "application/json")
+	_, _ = w.Write(jsRes)
 }
 
 func (rh *RestHandler) Listen(host string) error {
