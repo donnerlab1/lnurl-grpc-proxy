@@ -41,8 +41,8 @@ type WithdrawParams struct {
 
 type Service struct {
 	sync.RWMutex
-	baseUrl string
 
+	baseUrl           string
 	withdrawProcesses map[string]*WithdrawProcess
 }
 
