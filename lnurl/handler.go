@@ -59,6 +59,8 @@ func (rh *RestHandler) SendInvoice(w http.ResponseWriter, r *http.Request) {
 	}
 
 	query := r.URL.Query()
+	// We dont need to check for malformed input here, as the ForwardInvoice
+	// method will return an error if they dont match a case.
 	withdrawId := query.Get("k1")
 	invoice := query.Get("pr")
 	res := rh.LnurlWithdrawer.ForwardInvoice(withdrawId, invoice)
