@@ -25,8 +25,7 @@ func NewGrpcServer(withdrawer Withdrawer) *GrpcServer {
 	return &GrpcServer{withdrawer: withdrawer, ctx: ctx, cancel: cancel}
 }
 
-func (g *GrpcServer) LnurlWithdraw(server api.WithdrawProxy_LnurlWithdrawServer) error {
-
+func (s *GrpcServer) LnurlWithdraw(server api.WithdrawProxy_LnurlWithdrawServer) error {
 	lnurlClient := &GrpcWithdrawClient{
 		invoiceChan: make(chan string),
 		errChan:     make(chan error),
@@ -43,7 +42,7 @@ func (g *GrpcServer) LnurlWithdraw(server api.WithdrawProxy_LnurlWithdrawServer)
 
 	log.Printf("\t [GRPC] > New WithdrawReq: %s", openReq.WithdrawId)
 	// get bechstring
-	bechstring, err := g.withdrawer.AddWithdrawRequest(openReq.WithdrawId, lnurlClient, &WithdrawParams{
+	bechstring, err := s.withdrawer.AddWithdrawRequest(openReq.WithdrawId, lnurlClient, &WithdrawParams{
 		MinAmt:      openReq.MinAmount,
 		MaxAmt:      openReq.MaxAmount,
 		Description: openReq.Description,
@@ -62,7 +61,7 @@ func (g *GrpcServer) LnurlWithdraw(server api.WithdrawProxy_LnurlWithdrawServer)
 
 	for {
 		select {
-		case <-g.ctx.Done():
+		case <-s.ctx.Done():
 			return status.Errorf(codes.Canceled, "context canceled by server")
 		case <-server.Context().Done():
 			log.Printf("\t [GRPC] > context canceled: %s", openReq.WithdrawId)
@@ -94,8 +93,8 @@ func (g *GrpcServer) LnurlWithdraw(server api.WithdrawProxy_LnurlWithdrawServer)
 	}
 }
 
-func (g *GrpcServer) Stop() {
-	g.cancel()
+func (s *GrpcServer) Stop() {
+	s.cancel()
 }
 
 type GrpcWithdrawClient struct {
