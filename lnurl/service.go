@@ -79,6 +79,7 @@ func (s *Service) AddWithdrawRequest(id string, receiver InvoicePayer, params *W
 // LN WALLET to the LN SERVICE. It returns the Withdraw
 // response as specified in the lnurl rfc.
 func (s *Service) WithdrawRequest(id string) (*lnurl.LNURLWithdrawResponse, *lnurl.LNURLErrorResponse) {
+	// TODO: maybe we should ask the LN SERVICE for the params (max, min withdrawable) in this step.
 	s.RLock()
 
 	if withdrawProcess, ok := s.withdrawProcesses[id]; ok {
