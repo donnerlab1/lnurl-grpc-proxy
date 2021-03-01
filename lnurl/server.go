@@ -77,16 +77,15 @@ func (s *GrpcServer) LnurlWithdraw(server api.WithdrawProxy_LnurlWithdrawServer)
 			if err != nil {
 				return status.Errorf(codes.Unknown, err.Error())
 			}
-			ok := msg.GetPay()
-			if ok == nil {
+			payRes := msg.GetPay()
+			if payRes == nil {
 				lnurlClient.errChan <- unkownError
-				return unkownError
+				return status.Errorf(codes.Unknown, "payment response was nil")
 			}
-			if ok.Status == "OK" {
+			if payRes.Status == "OK" {
 				lnurlClient.errChan <- nil
 			} else {
-				lnurlClient.errChan <- fmt.Errorf("%s", ok.Reason)
-				return fmt.Errorf("%s", ok.Reason)
+				lnurlClient.errChan <- fmt.Errorf("%s", payRes.Reason)
 			}
 			return nil
 		}
