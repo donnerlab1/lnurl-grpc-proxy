@@ -62,10 +62,10 @@ func (s *GrpcServer) LnurlWithdraw(server api.WithdrawProxy_LnurlWithdrawServer)
 	for {
 		select {
 		case <-s.ctx.Done():
-			return status.Errorf(codes.Canceled, "context canceled by server")
+			return status.Errorf(codes.Canceled, "canceled by server")
 		case <-server.Context().Done():
 			log.Printf("\t [GRPC] > context canceled: %s", openReq.WithdrawId)
-			return nil
+			return status.Errorf(codes.Canceled, "canceled by the caller")
 		case invoice = <-lnurlClient.invoiceChan:
 			// send invoice request
 			err = server.Send(&api.LnurlWithdrawResponse{Event: &api.LnurlWithdrawResponse_Invoice{Invoice: &api.Invoice{Invoice: invoice}}})
