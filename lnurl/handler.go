@@ -15,6 +15,11 @@ func NewRestHandler(lnurlWithdrawer Withdrawer) *RestHandler {
 }
 
 func (rh *RestHandler) GetWithdrawParams(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodGet {
+		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
 	vars := mux.Vars(r)
 	withdrawId := vars["id"]
 
@@ -35,6 +40,10 @@ func (rh *RestHandler) GetWithdrawParams(w http.ResponseWriter, r *http.Request)
 }
 
 func (rh *RestHandler) SendInvoice(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodGet {
+		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
 
 	query := r.URL.Query()
 	withdrawId := query.Get("k1")
