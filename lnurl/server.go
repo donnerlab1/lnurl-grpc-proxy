@@ -1,6 +1,7 @@
 package lnurl
 
 import (
+	"context"
 	"fmt"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
@@ -14,6 +15,15 @@ var (
 
 type GrpcServer struct {
 	withdrawer Withdrawer
+
+	ctx context.Context
+	cancel context.CancelFunc
+}
+
+
+func NewGrpcServer(withdrawer Withdrawer) *GrpcServer {
+	ctx, cancel := context.WithCancel(context.Background())
+	return &GrpcServer{withdrawer: withdrawer, ctx: ctx, cancel: cancel}
 }
 
 func (g *GrpcServer) LnurlWithdraw(server api.WithdrawProxy_LnurlWithdrawServer) error {
@@ -53,6 +63,8 @@ func (g *GrpcServer) LnurlWithdraw(server api.WithdrawProxy_LnurlWithdrawServer)
 Loop:
 	for {
 		select {
+		case <-g.ctx.Done():
+			return status.Errorf(codes.Canceled, "context canceled by server")
 		case <-server.Context().Done():
 			log.Printf("\t [GRPC] > context canceled: %s", openReq.WithdrawId)
 			return nil
@@ -83,11 +95,10 @@ Loop:
 		return fmt.Errorf("%s", ok.Reason)
 	}
 	return nil
-
 }
 
-func NewGrpcServer(withdrawer Withdrawer) *GrpcServer {
-	return &GrpcServer{withdrawer: withdrawer}
+func (g *GrpcServer) Stop() {
+	g.cancel()
 }
 
 type GrpcWithdrawClient struct {
