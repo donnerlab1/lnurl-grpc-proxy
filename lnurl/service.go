@@ -50,6 +50,11 @@ func NewService(baseUrl string) *Service {
 	return srv
 }
 
+// AddWithdrawRequest adds a new withdraw request from a
+// LN SERVICE to the withdrawProcess list. This request is
+// in further identified by the given id. This returns the
+// bechstring that is presented to the LN WALLET as a QR
+// code.
 func (s *Service) AddWithdrawRequest(id string, receiver InvoicePayer, params *WithdrawParams) (bechstring string, err error) {
 
 	url := fmt.Sprintf("%s/withdraw/%s", s.baseUrl, id)
@@ -70,6 +75,9 @@ func (s *Service) AddWithdrawRequest(id string, receiver InvoicePayer, params *W
 	return bechstring, err
 }
 
+// WithdrawRequest handles the request comming from the
+// LN WALLET to the LN SERVICE. It returns the Withdraw
+// response as specified in the lnurl rfc.
 func (s *Service) WithdrawRequest(id string) (*lnurl.LNURLWithdrawResponse, *lnurl.LNURLErrorResponse) {
 	s.RLock()
 
@@ -95,6 +103,8 @@ func (s *Service) WithdrawRequest(id string) (*lnurl.LNURLWithdrawResponse, *lnu
 	}
 }
 
+// ForwardInvoice forwards the invoice given by the LN
+// WALLET to the LN SERVICE to be payed.
 func (s *Service) ForwardInvoice(id string, invoice string) *lnurl.LNURLErrorResponse {
 	s.Lock()
 	if process, ok := s.withdrawProcesses[id]; ok {
