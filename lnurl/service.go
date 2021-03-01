@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"github.com/fiatjaf/go-lnurl"
 	"log"
-	"strings"
+	"net/url"
 	"sync"
 )
 
@@ -60,7 +60,8 @@ func NewService(baseUrl string) *Service {
 // bechstring that is presented to the LN WALLET as a QR
 // code.
 func (s *Service) AddWithdrawRequest(id string, receiver InvoicePayer, params *WithdrawParams) (bechstring string, err error) {
-	url := fmt.Sprintf("%s/%s/%s", s.baseUrl, DEFAULT_WITHDRAW_SUBDIR, id)
+	url := fmt.Sprintf("%s/%s?id=%s", s.baseUrl, DEFAULT_WITHDRAW_SUBDIR, id)
+
 	bechstring, err = lnurl.LNURLEncode(url)
 	if err != nil {
 		return "", err
@@ -137,6 +138,16 @@ func (s *Service) ForwardInvoice(id string, invoice string) *lnurl.LNURLErrorRes
 	}
 }
 
-func splitUrl(url string) (id string) {
-	return strings.Split(url, "/")[4]
+func getIDFromRawUrl(raw string) (id string, err error) {
+	u, err := url.Parse(raw)
+	if err != nil {
+		return "", err
+	}
+
+	id = u.Query().Get("id")
+	if id == "" {
+		return "", fmt.Errorf("empty id")
+	}
+
+	return id, nil
 }

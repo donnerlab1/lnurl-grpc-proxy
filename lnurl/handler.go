@@ -20,10 +20,13 @@ func (rh *RestHandler) GetWithdrawParams(w http.ResponseWriter, r *http.Request)
 		return
 	}
 
-	vars := mux.Vars(r)
-	withdrawId := vars["id"]
+	q := r.URL.Query()
+	id := q.Get("id")
+	if id == "" {
+		http.Error(w, "empty id", http.StatusBadRequest)
+	}
 
-	res, errRes := rh.LnurlWithdrawer.WithdrawRequest(withdrawId)
+	res, errRes := rh.LnurlWithdrawer.WithdrawRequest(id)
 	if errRes != nil {
 		err := json.NewEncoder(w).Encode(errRes)
 		if err != nil {

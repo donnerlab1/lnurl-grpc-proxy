@@ -8,11 +8,11 @@ import (
 )
 
 func Test_Url(t *testing.T) {
-	testpk := "4324"
 	testid := "4345-53453"
-	id := fmt.Sprintf("%s;%s", testpk, testid)
-	url := fmt.Sprintf("https://gude/withdraw/%s", id)
-	withdrawId := splitUrl(url)
+	id := fmt.Sprintf("%s", testid)
+	url := fmt.Sprintf("https://gude/withdraw?id=%s", id)
+	withdrawId, err := getIDFromRawUrl(url)
+	assert.NoError(t, err, "expected no error")
 	assert.Equal(t, id, withdrawId)
 }
 func Test_Service(t *testing.T) {
@@ -35,7 +35,8 @@ func Test_Service(t *testing.T) {
 		t.Fatal(err)
 	}
 	t.Logf("lnurldecoded: %s", decoded)
-	withdrawId := splitUrl(decoded)
+	withdrawId, err := getIDFromRawUrl(decoded)
+	assert.NoError(t, err, "expected no error")
 	assert.Equal(t, testClient.withdrawId, withdrawId)
 
 	res, errRes := lnurlService.WithdrawRequest(withdrawId)
