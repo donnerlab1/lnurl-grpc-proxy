@@ -79,6 +79,14 @@ func (s *Service) AddWithdrawRequest(id string, receiver InvoicePayer, params *W
 	return bechstring, err
 }
 
+// RemoveWithdrawRequest removes a process from the
+// withdraw map.
+func (s *Service) RemoveWithdrawRequest(id string) {
+	s.Lock()
+	defer s.Unlock()
+	delete(s.withdrawProcesses, id)
+}
+
 // WithdrawRequest handles the request comming from the
 // LN WALLET to the LN SERVICE. It returns the Withdraw
 // response as specified in the lnurl rfc.
