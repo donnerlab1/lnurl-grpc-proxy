@@ -1,4 +1,4 @@
-module lnurl-grpc-proxy
+module github.com/donnerlab1/lnurl-grpc-proxy
 
 go 1.16
 

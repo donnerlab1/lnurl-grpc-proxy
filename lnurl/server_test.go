@@ -6,7 +6,7 @@ import (
 	"github.com/stretchr/testify/mock"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/test/bufconn"
-	"lnurl-grpc-proxy/api"
+	"github.com/donnerlab1/lnurl-grpc-proxy/api"
 	"net"
 	"sync"
 	"testing"

@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
-	"lnurl-grpc-proxy/api"
+	"github.com/donnerlab1/lnurl-grpc-proxy/api"
 	"log"
 )
 
