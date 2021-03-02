@@ -40,7 +40,7 @@ type WithdrawParams struct {
 }
 
 type Service struct {
-	sync.RWMutex
+	mu sync.RWMutex
 
 	baseUrl           string
 	withdrawProcesses map[string]*WithdrawProcess
@@ -71,9 +71,9 @@ func (s *Service) AddWithdrawRequest(id string, receiver InvoicePayer, params *W
 		WithdrawParams: params,
 	}
 
-	s.Lock()
+	s.mu.Lock()
 	s.withdrawProcesses[id] = process
-	s.Unlock()
+	s.mu.Unlock()
 
 	log.Printf("\t [LNURL] > New WithdrawProcess %s %v", id, params)
 	return bechstring, err
@@ -82,8 +82,8 @@ func (s *Service) AddWithdrawRequest(id string, receiver InvoicePayer, params *W
 // RemoveWithdrawRequest removes a process from the
 // withdraw map.
 func (s *Service) RemoveWithdrawRequest(id string) {
-	s.Lock()
-	defer s.Unlock()
+	s.mu.Lock()
+	defer s.mu.Unlock()
 	delete(s.withdrawProcesses, id)
 }
 
@@ -92,10 +92,10 @@ func (s *Service) RemoveWithdrawRequest(id string) {
 // response as specified in the lnurl rfc.
 func (s *Service) WithdrawRequest(id string) (*lnurl.LNURLWithdrawResponse, *lnurl.LNURLErrorResponse) {
 	// TODO: maybe we should ask the LN SERVICE for the params (max, min withdrawable) in this step.
-	s.RLock()
+	s.mu.RLock()
 
 	if withdrawProcess, ok := s.withdrawProcesses[id]; ok {
-		s.RUnlock()
+		s.mu.RUnlock()
 		res := &lnurl.LNURLWithdrawResponse{
 			Tag:                LNURL_WITHDRAWTAG,
 			K1:                 id,
@@ -108,7 +108,7 @@ func (s *Service) WithdrawRequest(id string) (*lnurl.LNURLWithdrawResponse, *lnu
 		log.Printf("\t [LNURL] > New WithdrawRequest %s %v", id, res)
 		return res, nil
 	}
-	s.RUnlock()
+	s.mu.RUnlock()
 
 	return nil, &lnurl.LNURLErrorResponse{
 		Status: "ERROR",
@@ -119,10 +119,10 @@ func (s *Service) WithdrawRequest(id string) (*lnurl.LNURLWithdrawResponse, *lnu
 // ForwardInvoice forwards the invoice given by the LN
 // WALLET to the LN SERVICE to be payed.
 func (s *Service) ForwardInvoice(id string, invoice string) *lnurl.LNURLErrorResponse {
-	s.Lock()
+	s.mu.Lock()
 	if process, ok := s.withdrawProcesses[id]; ok {
 		delete(s.withdrawProcesses, id)
-		s.Unlock()
+		s.mu.Unlock()
 
 		log.Printf("\t [LNURL] > New ForwardInvoice %s %s", id, invoice)
 		err := process.Receiver.PayInvoice(invoice)
@@ -139,7 +139,7 @@ func (s *Service) ForwardInvoice(id string, invoice string) *lnurl.LNURLErrorRes
 			Status: "OK",
 		}
 	}
-	s.Unlock()
+	s.mu.Unlock()
 	return &lnurl.LNURLErrorResponse{
 		Status: "ERROR",
 		Reason: WithdrawNotExistError.Error(),
